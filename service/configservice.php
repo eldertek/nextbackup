@@ -56,7 +56,7 @@ class ConfigService {
      * @return string
      */
     public function getDataDir() {
-        return \OC::$server->getConfig()->getSystemValue("datadirectory", \OC::$SERVERROOT . '/data');
+        return $this->owncloudConfig->getSystemValue("datadirectory", \OC::$SERVERROOT . '/data');
     }
 
     /**

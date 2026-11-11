@@ -12,10 +12,16 @@
 namespace OCA\NextBackup\AppInfo;
 
 use OCA\NextBackup\Jobs\BackupJob;
+use OCP\BackgroundJob\IJobList;
 
-// I need this line so NextBackup shows up in ownCloud 8.1.1, but in my ownCloud 8.1.1 development version from git
-// it shows up two times because of it
 $app = new Application();
 $app->registerSettings();
 
-\OC::$server->getJobList()->add( new BackupJob() );
+try {
+    $jobList = \OCP\Server::get(IJobList::class);
+    if (!$jobList->has(BackupJob::class, null)) {
+        $jobList->add(BackupJob::class);
+    }
+} catch (\Throwable $e) {
+    // Registered via info.xml
+}

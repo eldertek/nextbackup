@@ -10,7 +10,7 @@ Its main purpose is to provide an easy solution to restore the tables of an app 
 
 - Use this app at your own risk! Data loss may occur!
 - This app is no replacement for a more professional backup solution!]]></description>
-    <version>21.1.0</version>
+    <version>21.2.0</version>
     <licence>agpl</licence>
     <author mail="patrizio@bekerle.com" homepage="http://www.bekerle.com/">Patrizio Bekerle</author>
     <namespace>NextBackup</namespace>
@@ -29,13 +29,12 @@ Its main purpose is to provide an easy solution to restore the tables of an app 
 
     <!-- dependencies -->
     <dependencies>
-        <php min-version="5.4" />
+        <php min-version="8.2" max-version="8.5" />
         <database>pgsql</database>
         <database>sqlite</database>
         <database>mysql</database>
         <lib>zlib</lib>
-        <owncloud min-version="8.2" max-version="12" />
-        <nextcloud min-version="10" max-version="20" />
+        <nextcloud min-version="28" max-version="35" />
     </dependencies>
 
     <!-- cron jobs -->

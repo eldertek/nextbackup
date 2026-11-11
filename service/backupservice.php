@@ -48,13 +48,13 @@ class BackupService {
      * BackupService constructor
      *
      * @param $appName
-     * @param \OC_DB $odb
+     * @param IDBConnection $db
      * @param ConfigService $configService
      * @param ILogger $logger
      * @param $userId
-     * @param $db
+     * @param $odb
      */
-    public function __construct($appName, \OC_DB $odb, IDBConnection $db, ConfigService $configService, ILogger $logger, $userId){
+    public function __construct($appName, IDBConnection $db, ConfigService $configService, ILogger $logger, $userId = null, $odb = null){
         $this->appName = $appName;
         $this->odb = $odb;
         $this->configService = $configService;
@@ -120,15 +120,29 @@ class BackupService {
             // get the db structure
             // Warning: does not seem to support `longblob`!
             // @see: https://github.com/owncloud/core/issues/25316
-            if ( !$this->odb->getDbStructure( $structureFile ) )
-            {
-                throw new Exception( "Cannot create db structure in file: $structureFile" );
+            if ($this->odb !== null && method_exists($this->odb, 'getDbStructure')) {
+                if ( !$this->odb->getDbStructure( $structureFile ) )
+                {
+                    throw new Exception( "Cannot create db structure in file: $structureFile" );
+                }
+            } else {
+                $schema = $this->db->createSchema();
+                $xmlDoc = new \SimpleXMLElement('<database></database>');
+                foreach ($schema->getTables() as $table) {
+                    $tableXml = $xmlDoc->addChild('table');
+                    $tableXml->addChild('name', $table->getName());
+                    $declaration = $tableXml->addChild('declaration');
+                    foreach ($table->getColumns() as $col) {
+                        $field = $declaration->addChild('field');
+                        $field->addChild('name', $col->getName());
+                        $field->addChild('type', $col->getType()->getName());
+                    }
+                }
+                $xmlDoc->asXML($structureFile);
             }
 
             // create a xml object from db structure
-            $loadEntities = libxml_disable_entity_loader(false);
             $xml = simplexml_load_file( $structureFile );
-            libxml_disable_entity_loader($loadEntities);
 
             $charset = (string) $xml->charset;
 
@@ -229,7 +243,7 @@ class BackupService {
     {
         $timestampList = $this->fetchBackupTimestamps();
 
-        $dateTimeFormatter = \OC::$server->query('DateTimeFormatter');
+        $dateTimeFormatter = \OCP\Server::get(\OCP\IDateTimeFormatter::class);
         $dateHash = [];
         foreach( $timestampList as $timestamp )
         {
@@ -316,9 +330,11 @@ class BackupService {
         $this->dropTable( $table );
 
         // update the table structure
-        if ( !$this->odb->updateDbFromStructure( $structureFile ) )
-        {
-            throw new Exception( "Cannot restore table structure from file: $structureFile" );
+        if ($this->odb !== null && method_exists($this->odb, 'updateDbFromStructure')) {
+            if ( !$this->odb->updateDbFromStructure( $structureFile ) )
+            {
+                throw new Exception( "Cannot restore table structure from file: $structureFile" );
+            }
         }
 
         // get the data dump file name
@@ -377,9 +393,7 @@ class BackupService {
     private function getFieldListFromTableStructureFile( $tableStructureFile )
     {
         // create a xml object from table structure
-        $loadEntities = libxml_disable_entity_loader(false);
         $xml = simplexml_load_file( $tableStructureFile );
-        libxml_disable_entity_loader($loadEntities);
 
         $fieldList = [];
 

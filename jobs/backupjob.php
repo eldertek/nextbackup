@@ -11,25 +11,40 @@
 
 namespace OCA\NextBackup\Jobs;
 
-use OC\BackgroundJob\TimedJob;
+use OCP\BackgroundJob\TimedJob;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\App\IAppManager;
 use OCA\NextBackup\AppInfo\Application;
 use OCA\NextBackup\Service\BackupService;
 
 class BackupJob extends TimedJob
 {
-    public function __construct()
+    public function __construct(?ITimeFactory $time = null)
     {
+        if ($time !== null) {
+            parent::__construct($time);
+        } else {
+            try {
+                parent::__construct(\OCP\Server::get(ITimeFactory::class));
+            } catch (\Throwable $e) {
+                // fallback
+            }
+        }
         $this->setInterval( 600 ); // check every 10 minutes if we need a new backup
     }
 
     /**
-     * @param array $arguments
+     * @param mixed $arguments
      * @throws \OCP\AppFramework\QueryException
      */
-    public function run( $arguments )
+    protected function run( $arguments ): void
     {
-        if ( !\OC::$server->getAppManager()->isInstalled( 'nextbackup' ) )
-        {
+        try {
+            if ( !\OCP\Server::get( IAppManager::class )->isInstalled( 'nextbackup' ) )
+            {
+                return;
+            }
+        } catch ( \Throwable $e ) {
             return;
         }
 

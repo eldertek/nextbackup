@@ -13,6 +13,10 @@ namespace OCA\NextBackup\AppInfo;
 
 use OCP\AppFramework\App;
 use OCA\NextBackup\Controller\AdminController;
+use OCA\NextBackup\Service\BackupService;
+use OCA\NextBackup\Service\ConfigService;
+use OCP\IDBConnection;
+use OCP\ILogger;
 
 class Application extends App
 {
@@ -28,12 +32,26 @@ class Application extends App
                 $c->query('BackupService')
             );
         });
+
+        $container->registerService(BackupService::class, function($c) {
+            return new BackupService(
+                $c->query('AppName'),
+                $c->query(IDBConnection::class),
+                $c->query(ConfigService::class),
+                $c->query(ILogger::class),
+                $c->query('UserId')
+            );
+        });
+        $container->registerService('BackupService', function($c) {
+            return $c->query(BackupService::class);
+        });
     }
 
     public function registerSettings() {
         // Register settings scripts
-        // TODO: implement with new admin system?
-        \OCP\App::registerAdmin('nextbackup', 'admin');
+        if (method_exists('\OCP\App', 'registerAdmin')) {
+            \OCP\App::registerAdmin('nextbackup', 'admin');
+        }
     }
 
 }
